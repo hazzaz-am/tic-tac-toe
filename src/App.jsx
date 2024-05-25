@@ -1,9 +1,10 @@
+/* eslint-disable react/prop-types */
 import { useState } from "react";
 
 function Square({ value, onValueChange }) {
 	return (
 		<button
-			className="w-12 h-12 border border-gray-400 bg-white m-1 leading-9 text-lg"
+			className="w-16 h-16 border border-gray-400 bg-white m-1 leading-9 text-2xl font-bold"
 			onClick={onValueChange}
 		>
 			{value}
@@ -11,17 +12,15 @@ function Square({ value, onValueChange }) {
 	);
 }
 
-export default function Board() {
-	const [squares, setSquares] = useState(Array(9).fill(null));
-	const [xIsNext, setXIsNext] = useState(true);
-
+// Game Board
+function Board({ xIsNext, squares, onPlay }) {
 	const winner = calculateWinner(squares);
 	let status;
 
 	if (winner) {
 		status = `Winner: ${winner}`;
 	} else {
-		status = xIsNext ? "Next Player is X" : "Next Player is O";
+		status = "Next Player " + (xIsNext ? "X" : "O");
 	}
 
 	function handleClick(i) {
@@ -37,12 +36,11 @@ export default function Board() {
 			nextSquares[i] = "O";
 		}
 
-		setSquares(nextSquares);
-		setXIsNext(!xIsNext);
+		onPlay(nextSquares);
 	}
 	return (
 		<>
-			<div>{status}</div>
+			<h1 className="text-2xl font-bold mb-2">{status}</h1>
 			<div className="flex">
 				<Square value={squares[0]} onValueChange={() => handleClick(0)} />
 				<Square value={squares[1]} onValueChange={() => handleClick(1)} />
@@ -64,8 +62,58 @@ export default function Board() {
 	);
 }
 
-// Calculate Winner Function
+// Play Game
+export default function Game() {
+	const [history, setHistory] = useState([Array(9).fill(null)]);
+	const [xIsNext, setXIsNext] = useState(true);
+	const [currentMove, setCurrentMove] = useState(0);
 
+	const currentSquares = history[currentMove];
+
+	function handlePlay(nextSquares) {
+		setXIsNext(!xIsNext);
+		const nextHistory = [...history.slice(0, currentMove + 1), nextSquares];
+		setHistory(nextHistory);
+		setCurrentMove(nextHistory.length - 1);
+	}
+
+	function jumpTo(move) {
+		setCurrentMove(move);
+		setXIsNext(move % 2 === 0);
+	}
+
+	const moves = history.map((squares, move) => {
+		let description;
+
+		if (move > 0) {
+			description = `Go to the move # ${move}`;
+		} else {
+			description = `Go to start the game`;
+		}
+
+		return (
+			<li className="bg-gray-700 text-white rounded-sm mb-1 p-1" key={move}>
+				<button onClick={() => jumpTo(move)}>{description}</button>
+			</li>
+		);
+	});
+
+	return (
+		<div className="flex justify-center items-start p-4 mt-12">
+			{/* Game Board */}
+			<div className="mr-16">
+				<Board xIsNext={xIsNext} squares={currentSquares} onPlay={handlePlay} />
+			</div>
+
+			{/* Game History */}
+			<div className="border border-gray-400 text-lg p-1 mt-4">
+				<ol>{moves}</ol>
+			</div>
+		</div>
+	);
+}
+
+// Calculate Who is Winner
 function calculateWinner(squares) {
 	const lines = [
 		[0, 1, 2],
@@ -80,9 +128,6 @@ function calculateWinner(squares) {
 
 	for (let i = 0; i < lines.length; i++) {
 		const [a, b, c] = lines[i];
-		console.log("a---", a, squares[a]);
-		console.log("b---", b, squares[b]);
-		console.log("c---", c, squares[c]);
 
 		if (squares[a] && squares[a] === squares[b] && squares[b] === squares[c]) {
 			return squares[a];
